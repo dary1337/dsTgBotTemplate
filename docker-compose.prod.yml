@@ -1,0 +1,51 @@
+# Production compose: runs a prebuilt image from GHCR instead of building from source.
+# The only files you need on the server are this one and .env.
+#
+# Replace OWNER/REPO below with your fork (e.g. ghcr.io/yuri/ds-tg-bot-template:main),
+# or set APP_IMAGE in .env. Then: docker compose -f docker-compose.prod.yml up -d
+services:
+    app:
+        image: ${APP_IMAGE:-ghcr.io/OWNER/REPO:main}
+        restart: unless-stopped
+        logging:
+            driver: json-file
+            options:
+                max-size: '10m'
+                max-file: '3'
+        env_file: .env
+        environment:
+            MONGO_URI: mongodb://mongodb:27017
+            MONGO_DB_NAME: ds-tg-bot-template
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        volumes:
+            - ./logs:/app/logs
+        networks:
+            - ds-tg-bot-template-net
+
+    mongodb:
+        image: mongo:8
+        restart: unless-stopped
+        logging:
+            driver: json-file
+            options:
+                max-size: '10m'
+                max-file: '3'
+        environment:
+            MONGO_INITDB_DATABASE: ds-tg-bot-template
+        volumes:
+            - mongodb_data:/data/db
+        healthcheck:
+            test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+        networks:
+            - ds-tg-bot-template-net
+
+volumes:
+    mongodb_data:
+
+networks:
+    ds-tg-bot-template-net:

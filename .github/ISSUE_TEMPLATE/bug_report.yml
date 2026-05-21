@@ -1,0 +1,41 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: What did you do, what did you expect, and what happened instead?
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Logs
+          description: Relevant log output (the app prints clear startup errors). Redact tokens.
+          render: shell
+    - type: dropdown
+      id: area
+      attributes:
+          label: Area
+          options:
+              - Discord bot
+              - Telegram bot
+              - Database / migrations
+              - Deployment / Docker
+              - Other
+    - type: input
+      id: versions
+      attributes:
+          label: Node version & how you run it
+          placeholder: 'node 22, docker compose up'
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I'm not pasting any secrets/tokens
+                required: true
+              - label: This isn't a security vulnerability (those go through SECURITY.md)
+                required: true
