@@ -5,8 +5,7 @@ import { createChannelsRepository } from './channels-repo.js';
 import type { Channel } from './channels-schema.js';
 import type { AppLogger } from '../../src/logger/logger.js';
 
-// Handler for a `/addchannel` slash command: registers the current channel for the
-// guild it is run in. Pass `database.collections.channels` from index.ts.
+// `/addchannel`: registers the current channel. Pass database.collections.channels.
 export const handleAddChannel = async (
     interaction: ChatInputCommandInteraction,
     channels: Collection<Channel>,

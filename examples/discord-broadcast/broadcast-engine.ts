@@ -1,16 +1,14 @@
 // EXAMPLE — copy to: src/shared/broadcast-engine.ts
 //
-// Sends a message to many users, paced so you don't trip rate limits or anti-spam:
-// an hourly cap, jittered gaps, 429 retries, and pause/cancel mid-run. You give it
-// send() and classify(); since it only deals in string ids and callbacks, the same
-// loop drives a Telegram broadcast too.
+// Paced bulk sender: hourly cap, jittered gaps, 429 retries, pause/cancel.
+// Only deals in string ids + callbacks, so it works for Telegram too.
 export type BroadcastStatus = 'sent' | 'blocked' | 'unreachable' | 'failed';
 
 export type SendClassification = {
     status: BroadcastStatus;
-    // set => transient error (e.g. HTTP 429); the engine waits and retries the same user
+    // transient error (e.g. 429): wait this long, then retry the same user
     retryAfterMs?: number;
-    // set => stop the whole run immediately (e.g. the bot was quarantined)
+    // abort the whole run (e.g. bot quarantined)
     critical?: boolean;
 };
 
@@ -74,7 +72,7 @@ export const runBroadcast = async (options: BroadcastOptions): Promise<Broadcast
             break;
         }
 
-        // hourly cap: if we've hit the quota, wait until the oldest send ages out
+        // at quota: wait for the oldest send to age out of the window
         pruneWindow();
         if (sentAt.length >= maxPerHour) {
             await sleep(Math.max(500, sentAt[0]! + HOUR_MS - Date.now()));
@@ -111,7 +109,7 @@ export const runBroadcast = async (options: BroadcastOptions): Promise<Broadcast
 
         onProgress?.(stats);
 
-        // jittered spacing around the average slot, so the cadence looks human
+        // jitter the gap so the cadence isn't obviously a bot
         const slot = HOUR_MS / maxPerHour;
         await sleep(Math.max(minGapMs, Math.round(slot * (0.6 + Math.random() * 0.8))));
     }

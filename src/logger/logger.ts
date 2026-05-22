@@ -3,10 +3,8 @@ import path from 'node:path';
 import pino, { type Bindings, type LogFn } from 'pino';
 import type { LoggerEnv } from '../config/env.js';
 
-// The logging contract the rest of the app depends on — a port, not a re-export
-// of pino. Application code imports this type and never `pino` directly, so the
-// concrete logger can be swapped without touching call sites. The pino instance
-// built in `createLogger` structurally satisfies it (it has these and more).
+// The logging interface the app depends on, so call sites never import pino directly
+// and the implementation can be swapped. The pino instance below satisfies it.
 export type AppLogger = {
     readonly level: string;
     fatal: LogFn;
@@ -23,8 +21,7 @@ export type LoggerManager = {
     flush: () => void;
 };
 
-// Daily rotation, also rolled at 10 MB, keeping the last 7 files — so logs never fill
-// the disk on a long-running server.
+// Roll daily or at 10 MB, keep the last 7 files, so logs don't fill the disk.
 const rollOptions = (file: string) => ({
     file,
     extension: '.log',
@@ -37,8 +34,7 @@ const rollOptions = (file: string) => ({
 export const createLogger = (env: LoggerEnv): LoggerManager => {
     mkdirSync(env.LOG_DIR, { recursive: true });
 
-    // Pretty, colourised logs while developing; plain JSON in production (NODE_ENV is
-    // set to "production" in the Dockerfile) so log collectors can parse them.
+    // Pretty logs in dev, JSON in production so log collectors can parse them.
     const prettyStdout = process.env.NODE_ENV !== 'production';
 
     const targets: pino.TransportTargetOptions[] = [
@@ -47,7 +43,6 @@ export const createLogger = (env: LoggerEnv): LoggerManager => {
             level: env.LOG_LEVEL,
             options: prettyStdout ? { colorize: true } : { destination: 1 },
         },
-        // rotating files on disk
         {
             target: 'pino-roll',
             level: env.LOG_LEVEL,

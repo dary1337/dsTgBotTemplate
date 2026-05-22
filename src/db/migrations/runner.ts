@@ -9,9 +9,8 @@ const MIGRATIONS_DIR = path.resolve(RUNNER_DIR, '../../_migrations');
 const APPLIED_COLLECTION = 'migrations';
 const MIGRATION_FILE_PATTERN = /^\d+_[a-z0-9_]+\.(js|mjs|cjs|ts)$/;
 
-// Each migration file exports `up` (and optionally `down`) and receives the
-// raw Db handle, so it can touch any collection — not just the ones in the
-// schema registry. The migration id is its filename.
+// Each migration file exports `up` (and optionally `down`) and gets the raw Db
+// handle, so it can touch any collection. The migration id is its filename.
 export type MigrationContext = {
     db: Db;
     logger: AppLogger;

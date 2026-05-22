@@ -1,10 +1,8 @@
 // EXAMPLE — copy to: src/ds-bot/features/role-panel/config.ts
 // Wiring instructions: examples/discord-role-panel/README.md
 //
-// This example owns its own config. The core template intentionally does NOT put
-// guild/role/channel IDs in env — they are example-specific operational config.
-// Source them however suits your fork: env vars (as below) or, like the author's
-// production bots, a Mongo `settings` collection (see the README).
+// IDs stay out of the core env schema since they're example config. Source them
+// however suits your fork: env vars (below) or a settings store (see README).
 export type RolePanelConfig = {
     guildId: string;
     roleId: string;

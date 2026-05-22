@@ -7,8 +7,8 @@ import { adminOnly } from './middleware/admin-only.js';
 import type { TgBot, TgBotDeps } from './types.js';
 
 export const initTgBotHandlers = (bot: TgBot, deps: TgBotDeps) => {
-    // Everything below this router is restricted to admins (see migration 001
-    // for how the first admins are seeded) and to private chats.
+    // Everything on this router is admin-only and private-chat-only. First admins
+    // are seeded by migration 001.
     const adminRouter = new Composer<Context<Update>>();
 
     adminRouter.use(adminOnly(deps.admins));

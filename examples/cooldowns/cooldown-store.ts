@@ -1,7 +1,6 @@
 // EXAMPLE — copy to: src/shared/cooldown-store.ts (keep the cooldowns/ files together)
-// Per-key sliding cooldown, framework-agnostic. In-memory => works for a single
-// process. For multiple instances back it with Mongo (a TTL index on `expiresAt`)
-// or Redis instead — the public API stays the same.
+// In-memory, so single-process only. For multiple instances, back it with
+// Mongo (TTL index on expiresAt) or Redis; the API stays the same.
 export type CooldownResult = {
     allowed: boolean;
     retryAfterMs: number;

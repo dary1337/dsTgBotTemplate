@@ -1,8 +1,7 @@
 import type { IndexDescription } from 'mongodb';
 import type { z } from 'zod';
 
-// One collection's definition in one place: its zod schema (the document shape and
-// runtime validation) plus the indexes it should always have.
+// A collection's zod schema plus the indexes it should always have, in one place.
 export type CollectionDefinition<TSchema extends z.ZodType> = {
     name: string;
     schema: TSchema;

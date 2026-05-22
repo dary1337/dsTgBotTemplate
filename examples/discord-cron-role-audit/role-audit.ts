@@ -1,5 +1,5 @@
 // EXAMPLE — copy to: src/ds-bot/jobs/role-audit.ts
-// A recurring cron job with start/stop lifecycle. Pairs with the role-panel example.
+// Pairs with the role-panel example.
 import { CronJob } from 'cron';
 import { Client } from 'discord.js';
 import type { AppLogger } from '../../src/logger/logger.js';

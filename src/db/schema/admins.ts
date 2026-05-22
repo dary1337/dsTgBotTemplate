@@ -4,8 +4,7 @@ import { defineCollection } from '../collection.js';
 export const ADMIN_PLATFORMS = ['telegram', 'discord'] as const;
 export const ADMIN_SOURCES = ['migration', 'command'] as const;
 
-// The shape of an `admins` document. Types and runtime validation both
-// derive from this one schema, so the collection can never drift from the code.
+// An `admins` document. Types and runtime validation both derive from this schema.
 export const adminSchema = z.object({
     platform: z.enum(ADMIN_PLATFORMS),
     userId: z.string().min(1),

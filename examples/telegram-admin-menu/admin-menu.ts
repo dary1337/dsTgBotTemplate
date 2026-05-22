@@ -1,6 +1,5 @@
-// EXAMPLE — copy to: src/tg-bot/features/admin-menu.ts (replaces the core start.ts)
-// Buttons map to actions registered by ping/admin-list. Register this instead of
-// registerStart in tg-bot/init.ts. See examples/telegram-admin-menu/README.md
+// EXAMPLE — copy to: src/tg-bot/features/admin-menu.ts (replaces start.ts)
+// Buttons map to ping/admin-list actions. Register instead of registerStart.
 import { Markup } from 'telegraf';
 import type { Context } from 'telegraf';
 import { formatTelegramCommands } from '../../src/tg-bot/commands.js';

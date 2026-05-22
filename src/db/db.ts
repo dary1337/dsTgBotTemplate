@@ -5,9 +5,8 @@ import { toMongoJsonSchema } from './json-schema.js';
 import { withRetry, type RetryOptions } from './retry.js';
 import { COLLECTION_DEFINITIONS, adminsCollection, type Admin } from './schema/index.js';
 
-// A flaky network or a database that is still booting (common with
-// `docker compose up`, where Mongo and the app start together) shouldn't kill
-// the process on the first failed connect — retry with backoff first.
+// Mongo is often still booting when the app starts (e.g. `docker compose up`),
+// so retry with backoff before giving up on the first failed connect.
 const CONNECT_RETRY: Omit<RetryOptions, 'onRetry'> = {
     attempts: 5,
     baseDelayMs: 500,
@@ -25,16 +24,15 @@ export type DatabaseConnection = {
     close: () => Promise<void>;
 };
 
-// Hide any user:password in a connection string before it reaches the logs.
+// Strip user:password from a connection string before logging it.
 const redactMongoUri = (uri: string) => uri.replace(/\/\/[^/@]+@/, '//***@');
 
 const buildCollections = (db: Db): AppCollections => ({
     admins: db.collection<Admin>(adminsCollection.name),
 });
 
-// For each registered collection: apply a `$jsonSchema` validator (so the DB rejects
-// malformed documents) and create its indexes. Idempotent — safe on every startup.
-// Note: this only adds/updates; it never drops indexes or validators you removed.
+// Apply each collection's $jsonSchema validator and indexes. Idempotent, so it's
+// safe on every startup. Only adds/updates — never drops what you removed.
 export const syncSchema = async (db: Db, logger: AppLogger) => {
     const existing = new Set(
         (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name),
@@ -85,8 +83,7 @@ export const connectDatabase = async (
             { uri: redactMongoUri(env.MONGO_URI), err: error },
             'Cannot reach MongoDB. Run `docker compose up` (it starts Mongo for you), or start a local mongod and check MONGO_URI in .env.',
         );
-        // The driver buffers an open socket even when the first connect rejects;
-        // close it so a failed startup doesn't leak a connection.
+        // The driver keeps a socket open even when connect rejects; close it so we don't leak.
         await client.close().catch(() => undefined);
         throw error;
     }

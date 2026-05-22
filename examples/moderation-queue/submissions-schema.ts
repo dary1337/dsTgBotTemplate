@@ -1,6 +1,6 @@
 // EXAMPLE — copy to: src/db/schema/submissions.ts
-// Then register it: add `submissionsCollection` to COLLECTION_DEFINITIONS in
-// src/db/schema/index.ts and a `submissions` accessor in buildCollections (src/db/db.ts).
+// Register it: add submissionsCollection to COLLECTION_DEFINITIONS (src/db/schema/index.ts)
+// and a submissions accessor in buildCollections (src/db/db.ts).
 import { z } from 'zod';
 import { defineCollection } from '../../src/db/collection.js';
 

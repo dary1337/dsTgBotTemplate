@@ -3,8 +3,7 @@ import { MessageFlags, type ButtonInteraction } from 'discord.js';
 import type { AppLogger } from '../../src/logger/logger.js';
 import { LANG_BUTTON_PREFIX, type LanguageConfig } from './config.js';
 
-// Handles the RU/EN buttons: grants the chosen language role and drops the other one,
-// so a user only ever has one.
+// Drops the other language role so a user only ever has one.
 export const handleLanguageButton = async (
     interaction: ButtonInteraction,
     logger: AppLogger,

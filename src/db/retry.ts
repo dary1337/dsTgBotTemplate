@@ -28,8 +28,7 @@ export const withRetry = async <T>(
 ): Promise<T> => {
     const { attempts, baseDelayMs, maxDelayMs, onRetry, sleep = defaultSleep } = options;
 
-    // Validate up front: an invalid `attempts` would skip the loop entirely and make
-    // the final `throw lastError` throw `undefined` instead of a real error.
+    // Bad options would skip the loop and make the final throw rethrow `undefined`.
     if (!Number.isInteger(attempts) || attempts < 1) {
         throw new RangeError('`attempts` must be an integer >= 1');
     }
