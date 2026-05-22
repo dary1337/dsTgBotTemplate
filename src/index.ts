@@ -9,14 +9,6 @@ import { createLogger, type LoggerManager } from './logger/logger.js';
 import { TELEGRAM_COMMANDS } from './tg-bot/commands.js';
 import { initTgBotHandlers, type TgBot } from './tg-bot/init.js';
 
-const loggerManager = createLogger(loadLoggerEnv());
-const logger = loggerManager.logger;
-
-let database: DatabaseConnection | undefined;
-let dsBot: Client<boolean> | undefined;
-let tgBot: TgBot | undefined;
-let isShuttingDown = false;
-
 const createDsBot = () =>
     new Client({
         // Minimal: slash commands need only Guilds. Add GuildMembers / GuildMessages /
@@ -25,7 +17,89 @@ const createDsBot = () =>
         intents: [GatewayIntentBits.Guilds],
     });
 
-const startApp = async () => {
+type Shutdown = (reason: string) => Promise<void>;
+
+// Process-level safety net: clean shutdown on signals, last-resort logging for
+// errors that escaped every other boundary. Registered once the logger exists.
+const installProcessHandlers = (loggerManager: LoggerManager, shutdown: Shutdown) => {
+    const { logger } = loggerManager;
+
+    process.once('SIGINT', () => {
+        void shutdown('SIGINT').then(() => process.exit(0));
+    });
+
+    process.once('SIGTERM', () => {
+        void shutdown('SIGTERM').then(() => process.exit(0));
+    });
+
+    process.on('unhandledRejection', (reason) => {
+        logger.error({ err: reason }, 'Unhandled promise rejection');
+        void shutdown('unhandledRejection').then(() => process.exit(1));
+    });
+
+    process.on('uncaughtException', (error) => {
+        logger.fatal({ err: error }, 'Uncaught exception');
+        void shutdown('uncaughtException').then(() => process.exit(1));
+    });
+};
+
+const main = async () => {
+    const loggerEnv = loadLoggerEnv();
+
+    // Build the logger first, under its own guard: it is the only thing the rest of
+    // the boot sequence has to report failures with, so if it cannot be created we
+    // have nothing better than the console and must give up.
+    let loggerManager: LoggerManager;
+    try {
+        loggerManager = createLogger(loggerEnv.env);
+    } catch (error) {
+        console.error('Failed to initialise the logger, aborting startup:', error);
+        process.exit(1);
+    }
+
+    const { logger } = loggerManager;
+
+    if (loggerEnv.issues.length > 0) {
+        logger.warn({ issues: loggerEnv.issues }, 'Invalid logger environment, using defaults');
+    }
+
+    let database: DatabaseConnection | undefined;
+    let dsBot: Client<boolean> | undefined;
+    let tgBot: TgBot | undefined;
+    let isShuttingDown = false;
+
+    const shutdown: Shutdown = async (reason) => {
+        if (isShuttingDown) {
+            return;
+        }
+
+        isShuttingDown = true;
+        logger.info({ reason }, 'Application shutdown started');
+
+        try {
+            if (tgBot) {
+                tgBot.stop(reason);
+                logger.info('Telegram bot stopped');
+            }
+
+            if (dsBot) {
+                await dsBot.destroy();
+                logger.info('Discord bot stopped');
+            }
+
+            if (database) {
+                await database.close();
+            }
+        } catch (e) {
+            logger.error({ err: e }, 'Application shutdown failed');
+        } finally {
+            logger.info('Application shutdown completed');
+            loggerManager.flush();
+        }
+    };
+
+    installProcessHandlers(loggerManager, shutdown);
+
     try {
         const env = loadEnv();
 
@@ -40,7 +114,11 @@ const startApp = async () => {
         if (env.DS_BOT_TOKEN) {
             try {
                 dsBot = createDsBot();
-                initDsBotHandlers(dsBot, logger.child({ bot: 'discord' }));
+                initDsBotHandlers(dsBot, {
+                    token: env.DS_BOT_TOKEN,
+                    admins,
+                    logger: logger.child({ bot: 'discord' }),
+                });
                 await dsBot.login(env.DS_BOT_TOKEN);
             } catch (error) {
                 logger.error({ err: error }, 'Discord bot failed to start — continuing without it');
@@ -81,57 +159,9 @@ const startApp = async () => {
         logger.info('Application started');
     } catch (e) {
         logger.fatal({ err: e }, 'Application startup failed');
-        await shutdown('startup-error', loggerManager);
+        await shutdown('startup-error');
         process.exitCode = 1;
     }
 };
 
-const shutdown = async (reason: string, manager: LoggerManager) => {
-    if (isShuttingDown) {
-        return;
-    }
-
-    isShuttingDown = true;
-    logger.info({ reason }, 'Application shutdown started');
-
-    try {
-        if (tgBot) {
-            tgBot.stop(reason);
-            logger.info('Telegram bot stopped');
-        }
-
-        if (dsBot) {
-            await dsBot.destroy();
-            logger.info('Discord bot stopped');
-        }
-
-        if (database) {
-            await database.close();
-        }
-    } catch (e) {
-        logger.error({ err: e }, 'Application shutdown failed');
-    } finally {
-        logger.info('Application shutdown completed');
-        manager.flush();
-    }
-};
-
-process.once('SIGINT', () => {
-    void shutdown('SIGINT', loggerManager).then(() => process.exit(0));
-});
-
-process.once('SIGTERM', () => {
-    void shutdown('SIGTERM', loggerManager).then(() => process.exit(0));
-});
-
-process.on('unhandledRejection', (reason) => {
-    logger.error({ err: reason }, 'Unhandled promise rejection');
-    void shutdown('unhandledRejection', loggerManager).then(() => process.exit(1));
-});
-
-process.on('uncaughtException', (error) => {
-    logger.fatal({ err: error }, 'Uncaught exception');
-    void shutdown('uncaughtException', loggerManager).then(() => process.exit(1));
-});
-
-void startApp();
+void main();
