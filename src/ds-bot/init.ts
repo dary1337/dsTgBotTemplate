@@ -5,8 +5,7 @@ import { DISCORD_COMMANDS } from './commands.js';
 export const initDsBotHandlers = (bot: Client<boolean>, logger: AppLogger) => {
     bot.once('ready', async () => {
         try {
-            // Register slash commands globally. For instant updates while
-            // developing, register per-guild instead (see discord.js docs).
+            // Global registration. Register per-guild for instant updates in dev.
             await bot.application?.commands.set(DISCORD_COMMANDS);
             logger.info({ botId: bot.user?.id, username: bot.user?.tag }, 'Discord bot is ready');
         } catch (e) {

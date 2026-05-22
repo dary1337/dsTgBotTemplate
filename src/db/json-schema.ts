@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
-// Turns a zod schema into a MongoDB `$jsonSchema` validator so the database itself
-// rejects malformed documents — not just our repositories. Emits `bsonType` (incl.
-// `date`, which plain JSON Schema can't express) and leaves unknown nodes unconstrained
-// rather than guessing. Extra fields (like `_id`) stay allowed.
+// Turns a zod schema into a MongoDB $jsonSchema validator. Emits bsonType (incl. `date`),
+// leaves unknown nodes unconstrained, and allows extra fields like `_id`.
 type MongoSchema = Record<string, unknown>;
 
 const nodeToMongo = (schema: z.ZodType): MongoSchema => {
@@ -31,7 +29,7 @@ const nodeToMongo = (schema: z.ZodType): MongoSchema => {
     if (schema instanceof z.ZodObject) {
         return objectToMongo(schema);
     }
-    // Unknown node: don't over-constrain.
+    // Unknown node: leave it open.
     return {};
 };
 

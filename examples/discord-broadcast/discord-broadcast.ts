@@ -1,7 +1,6 @@
 // EXAMPLE — copy to: src/ds-bot/features/broadcast.ts
-// A user-friendly /broadcast: confirm step (shows audience size), then a live progress
-// panel with Pause / Resume / Cancel buttons. The heavy lifting (pacing, retries,
-// classification, auto-stop) lives in the platform-agnostic broadcast-engine.
+// /broadcast: confirm step (with audience size), then a live progress panel with
+// Pause/Resume/Cancel. Pacing, retries, and classification live in broadcast-engine.
 import { randomUUID } from 'node:crypto';
 import {
     ActionRowBuilder,
@@ -76,7 +75,7 @@ const classifyDiscordError = (error: unknown): SendClassification => {
             };
         }
         if (error.code === 50007) {
-            return { status: 'blocked' }; // user has DMs closed / blocked the bot
+            return { status: 'blocked' }; // DMs closed or bot blocked
         }
         if (error.code === 10013 || error.code === 50033) {
             return { status: 'unreachable' };
@@ -84,13 +83,13 @@ const classifyDiscordError = (error: unknown): SendClassification => {
     }
     const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
     if (text.toLowerCase().includes('anti-spam')) {
-        return { status: 'failed', critical: true }; // quarantined — stop everything
+        return { status: 'failed', critical: true }; // quarantined, stop everything
     }
     return { status: 'failed' };
 };
 
 export type BroadcastDeps = {
-    // who receives the broadcast — e.g. () => usersRepo.getSubscriberIds()
+    // e.g. () => usersRepo.getSubscriberIds()
     getRecipientIds: () => Promise<string[]>;
     broadcastLogs: Collection<BroadcastLog>;
     logger: AppLogger;
@@ -148,7 +147,7 @@ export const createBroadcastFeature = (deps: BroadcastDeps) => {
         deps.logger.info({ runId, ...finalStats }, 'Broadcast finished');
     };
 
-    // `/broadcast <text>` — show a confirm panel with the audience size.
+    // `/broadcast <text>`: show confirm panel with audience size.
     const handleBroadcastCommand = async (interaction: ChatInputCommandInteraction) => {
         const text = interaction.options.getString('text', true);
         const recipientIds = await deps.getRecipientIds();

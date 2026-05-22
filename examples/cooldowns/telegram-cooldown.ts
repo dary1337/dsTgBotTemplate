@@ -2,8 +2,7 @@
 import type { Context, MiddlewareFn } from 'telegraf';
 import { CooldownStore } from './cooldown-store.js';
 
-// Rate-limit every update per Telegram user. Place it high in the middleware
-// chain (before your command handlers).
+// Register before command handlers so it gates every update.
 export const cooldown = (windowMs: number): MiddlewareFn<Context> => {
     const store = new CooldownStore(windowMs);
 

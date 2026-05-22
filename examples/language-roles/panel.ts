@@ -9,7 +9,7 @@ import {
 import type { AppLogger } from '../../src/logger/logger.js';
 import { LANG_BUTTON_PREFIX, type LanguageConfig } from './config.js';
 
-// Posts the language picker into the configured channel (call once on `ready`).
+// Call once on `ready`.
 export const sendLanguagePanel = async (
     bot: Client,
     logger: AppLogger,

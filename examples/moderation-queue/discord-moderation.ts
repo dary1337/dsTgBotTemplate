@@ -28,7 +28,7 @@ const reviewButtons = (id: string) =>
             .setStyle(ButtonStyle.Danger),
     );
 
-// `/submit <content>` — queue a submission and post it to the review channel.
+// /submit <content>
 export const handleSubmit = async (
     interaction: ChatInputCommandInteraction,
     submissions: Collection<Submission>,
@@ -54,7 +54,6 @@ export const handleSubmit = async (
     );
 };
 
-// Approve / Reject button handler. The atomic repo.resolve() guarantees one winner.
 export const handleModerationButton = async (
     interaction: ButtonInteraction,
     submissions: Collection<Submission>,

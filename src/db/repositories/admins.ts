@@ -34,8 +34,7 @@ export const createAdminsRepository = (collection: Collection<Admin>): AdminsRep
         const now = new Date();
         const platform = input.platform ?? 'telegram';
 
-        // Validate against the schema before writing, so a bad value fails
-        // loudly here instead of silently corrupting the collection.
+        // Validate before writing so a bad value fails here, not in the collection.
         const document = adminSchema.parse({
             platform,
             userId: input.userId,

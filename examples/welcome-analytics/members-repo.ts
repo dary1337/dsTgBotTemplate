@@ -3,7 +3,7 @@ import type { Collection } from 'mongodb';
 import { memberSchema, type Member } from './members-schema.js';
 
 export const createMembersRepository = (collection: Collection<Member>) => ({
-    // Records a join once per member (idempotent). Returns true if it was new.
+    // Idempotent upsert; true means first time we saw this member.
     recordJoin: async (input: { guildId: string; userId: string; username: string }) => {
         const doc = memberSchema.parse({ ...input, joinedAt: new Date() });
         const result = await collection.updateOne(
@@ -16,7 +16,6 @@ export const createMembersRepository = (collection: Collection<Member>) => ({
 
     countInGuild: (guildId: string) => collection.countDocuments({ guildId }),
 
-    // Simple analytics: joins since a given moment (e.g. last 24h / 7d).
     countJoinedSince: (guildId: string, since: Date) =>
         collection.countDocuments({ guildId, joinedAt: { $gte: since } }),
 });

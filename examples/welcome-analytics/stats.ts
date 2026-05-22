@@ -1,6 +1,5 @@
 // EXAMPLE — copy to: src/ds-bot/features/stats.ts (pairs with welcome.ts)
-// A `/stats` slash command that reports membership analytics from the `members`
-// collection the welcome handler fills.
+// Reads from the `members` collection that welcome.ts fills.
 import { MessageFlags, type ChatInputCommandInteraction } from 'discord.js';
 import type { Collection } from 'mongodb';
 import { createMembersRepository } from './members-repo.js';

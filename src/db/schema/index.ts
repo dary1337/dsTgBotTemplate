@@ -1,6 +1,6 @@
 import { adminsCollection } from './admins.js';
 
-// Every collection the app uses. Add new ones here and as a typed accessor in
+// Every collection the app uses. Add new ones here and as an accessor in
 // buildCollections (../db.ts); syncSchema picks them up on startup.
 export const COLLECTION_DEFINITIONS = [adminsCollection];
 
