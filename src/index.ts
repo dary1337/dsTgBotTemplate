@@ -114,11 +114,7 @@ const main = async () => {
         if (env.DS_BOT_TOKEN) {
             try {
                 dsBot = createDsBot();
-                initDsBotHandlers(dsBot, {
-                    token: env.DS_BOT_TOKEN,
-                    admins,
-                    logger: logger.child({ bot: 'discord' }),
-                });
+                initDsBotHandlers(dsBot, logger.child({ bot: 'discord' }));
                 await dsBot.login(env.DS_BOT_TOKEN);
             } catch (error) {
                 logger.error({ err: error }, 'Discord bot failed to start — continuing without it');
