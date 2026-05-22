@@ -1,5 +1,6 @@
 // EXAMPLE — copy to: src/ds-bot/features/welcome.ts
-// Needs the "Server Members Intent" toggle enabled in the Discord Developer Portal.
+// Needs GatewayIntentBits.GuildMembers in the Client (src/index.ts) and the
+// Server Members Intent toggle enabled in the Discord Developer Portal.
 import { EmbedBuilder, type Client } from 'discord.js';
 import type { Collection } from 'mongodb';
 import { createMembersRepository } from './members-repo.js';
