@@ -1,8 +1,7 @@
 // EXAMPLE — copy to: src/shared/locales/ru.ts
 import type { en } from './en.js';
 
-// `: typeof en` enforces full parity with the canonical locale — drop or misspell a
-// key and the build fails right here, so a half-translated locale can never ship.
+// `: typeof en` forces parity with the canonical locale: a missing key fails the build.
 export const ru: typeof en = {
     greeting: 'Привет, {name}!',
     ping: { reply: 'Понг.' },

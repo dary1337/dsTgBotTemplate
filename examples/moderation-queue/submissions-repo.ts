@@ -12,9 +12,8 @@ export const createSubmissionsRepository = (collection: Collection<Submission>) 
     attachReviewMessage: (id: ObjectId, reviewMessageId: string) =>
         collection.updateOne({ _id: id }, { $set: { reviewMessageId } }),
 
-    // Atomic, race-safe transition: the filter requires status === 'pending', so a row
-    // can only ever be resolved once. If two moderators click at the same moment, the
-    // second findOneAndUpdate matches nothing and returns null — no double approval.
+    // The status: 'pending' filter makes this resolve-once: a concurrent second click
+    // matches nothing and returns null, so no double approval.
     resolve: (
         id: ObjectId,
         status: Exclude<SubmissionStatus, 'pending'>,

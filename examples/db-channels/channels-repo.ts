@@ -11,9 +11,7 @@ export type AddChannelInput = {
 };
 
 export const createChannelsRepository = (collection: Collection<Channel>) => ({
-    // get-or-insert (upsert): returns the existing row, or creates it if missing.
-    // Works on a completely empty database — the first call just creates the row,
-    // so users can register guilds/channels with no manual seeding.
+    // Upsert: returns existing row, or creates it. No seeding needed.
     getOrInsert: async (input: AddChannelInput): Promise<GetOrInsertResult> => {
         const toInsert = channelSchema.parse({ ...input, createdAt: new Date() });
 

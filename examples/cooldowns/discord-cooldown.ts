@@ -2,11 +2,10 @@
 import { MessageFlags, type ChatInputCommandInteraction } from 'discord.js';
 import { CooldownStore } from './cooldown-store.js';
 
-// One store per command name, so cooldowns don't bleed across commands.
+// One store per command name so cooldowns don't bleed across commands.
 const stores = new Map<string, CooldownStore>();
 
-// Returns true if the command may run, false if the user is on cooldown
-// (in which case an ephemeral reply has already been sent).
+// False means on cooldown; an ephemeral reply has already been sent in that case.
 export const checkCommandCooldown = async (
     interaction: ChatInputCommandInteraction,
     windowMs: number,

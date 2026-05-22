@@ -1,7 +1,5 @@
 // EXAMPLE — copy to: src/ds-bot/features/welcome.ts
-// Greets each new member in a channel and records the join for analytics.
-// Needs the GuildMembers intent (already on in the core client) plus the
-// "Server Members Intent" toggle in the Discord Developer Portal.
+// Needs the "Server Members Intent" toggle enabled in the Discord Developer Portal.
 import { EmbedBuilder, type Client } from 'discord.js';
 import type { Collection } from 'mongodb';
 import { createMembersRepository } from './members-repo.js';

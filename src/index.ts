@@ -11,23 +11,18 @@ import { initTgBotHandlers, type TgBot } from './tg-bot/init.js';
 
 const createDsBot = () =>
     new Client({
-        // Minimal: slash commands need only Guilds. Add GuildMembers / GuildMessages /
-        // MessageContent (the last two are privileged) only when a feature needs them —
-        // the relevant examples say which.
+        // Slash commands only need Guilds. Add more intents per feature (some are privileged).
         intents: [GatewayIntentBits.Guilds],
     });
 
 type Shutdown = (reason: string) => Promise<void>;
 
-// Process-level safety net: clean shutdown on signals, last-resort logging for
-// errors that escaped every other boundary. Registered once the logger exists.
+// Clean shutdown on signals, last-resort logging for anything that escaped.
 const installProcessHandlers = (loggerManager: LoggerManager, shutdown: Shutdown) => {
     const { logger } = loggerManager;
 
-    // Always terminate, even if shutdown() rejects: a hung process during a fatal
-    // condition is worse than an unclean exit. exit() lives in finally so it runs on
-    // both paths; the catch only logs, and is itself guarded since the logger may be
-    // the very thing that failed.
+    // Always exit, even if shutdown() rejects — a hung process is worse. The catch
+    // is guarded too, in case the logger itself is what failed.
     const exitAfterShutdown = (reason: string, code: number) => {
         void shutdown(reason)
             .catch((err) => {
@@ -62,9 +57,7 @@ const installProcessHandlers = (loggerManager: LoggerManager, shutdown: Shutdown
 const main = async () => {
     const loggerEnv = loadLoggerEnv();
 
-    // Build the logger first, under its own guard: it is the only thing the rest of
-    // the boot sequence has to report failures with, so if it cannot be created we
-    // have nothing better than the console and must give up.
+    // Logger first: it's how everything else reports failure. If it won't build, give up.
     let loggerManager: LoggerManager;
     try {
         loggerManager = createLogger(loggerEnv.env);
@@ -125,8 +118,7 @@ const main = async () => {
 
         const admins = createAdminsRepository(database.collections.admins);
 
-        // Each bot starts in isolation: if one fails, we log it and keep the other
-        // running. (The database above is shared, so a DB failure is still fatal.)
+        // One bot failing shouldn't take down the other. (DB is shared, so DB failure is fatal.)
         if (env.DS_BOT_TOKEN) {
             try {
                 dsBot = createDsBot();
@@ -146,8 +138,8 @@ const main = async () => {
                 tgBot = new Telegraf(env.TG_BOT_TOKEN);
                 initTgBotHandlers(tgBot, { admins, logger: logger.child({ bot: 'telegram' }) });
                 await tgBot.telegram.setMyCommands(TELEGRAM_COMMANDS);
-                // launch() only resolves when long polling STOPS, so don't await it —
-                // the onLaunch callback fires once the bot is actually up.
+                // launch() resolves only when polling stops, so don't await it; the
+                // callback fires once the bot is up.
                 void tgBot
                     .launch({}, () => logger.info('Telegram bot is ready'))
                     .catch((error) => {

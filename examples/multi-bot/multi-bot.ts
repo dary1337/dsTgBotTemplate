@@ -1,6 +1,6 @@
 // EXAMPLE — copy to: src/ds-bot/multi-bot.ts
-// Run several Discord bots from one process. Set DS_BOT_TOKENS=token1,token2,token3
-// and call startDiscordBots() from index.ts instead of the single-token login.
+// Set DS_BOT_TOKENS=token1,token2,... and call startDiscordBots() from index.ts
+// instead of the single-token login.
 import { Client, GatewayIntentBits } from 'discord.js';
 import { initDsBotHandlers } from '../../src/ds-bot/init.js';
 import type { AppLogger } from '../../src/logger/logger.js';

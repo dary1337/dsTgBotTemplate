@@ -56,17 +56,14 @@ const formatIssues = (error: z.ZodError) =>
 
 export type LoggerEnvResult = {
     env: LoggerEnv;
-    // Validation problems that were tolerated by falling back to defaults. Empty
-    // when the environment is clean. The caller logs these once the logger exists,
-    // so a bad LOG_LEVEL/LOG_DIR is surfaced instead of silently ignored.
+    // Problems we tolerated by falling back to defaults; the caller logs them once the logger exists.
     issues: string[];
 };
 
 const LOGGER_ENV_DEFAULTS: LoggerEnv = { LOG_LEVEL: 'info', LOG_DIR: 'logs' };
 
-// Logging config must never block startup (we have nowhere to report the failure
-// yet), so invalid values fall back to defaults — but the issues are returned so
-// the caller can warn about them as soon as the logger is up.
+// Logging config must never block startup, so invalid values fall back to defaults.
+// The issues are returned so the caller can warn once the logger is up.
 export const loadLoggerEnv = (): LoggerEnvResult => {
     const result = loggerEnvSchema.safeParse(process.env);
 
