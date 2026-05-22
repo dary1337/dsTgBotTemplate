@@ -24,22 +24,38 @@ type Shutdown = (reason: string) => Promise<void>;
 const installProcessHandlers = (loggerManager: LoggerManager, shutdown: Shutdown) => {
     const { logger } = loggerManager;
 
+    // Always terminate, even if shutdown() rejects: a hung process during a fatal
+    // condition is worse than an unclean exit. exit() lives in finally so it runs on
+    // both paths; the catch only logs, and is itself guarded since the logger may be
+    // the very thing that failed.
+    const exitAfterShutdown = (reason: string, code: number) => {
+        void shutdown(reason)
+            .catch((err) => {
+                try {
+                    logger.error({ err }, 'Shutdown failed while exiting process');
+                } catch {
+                    console.error('Shutdown failed while exiting process:', err);
+                }
+            })
+            .finally(() => process.exit(code));
+    };
+
     process.once('SIGINT', () => {
-        void shutdown('SIGINT').then(() => process.exit(0));
+        exitAfterShutdown('SIGINT', 0);
     });
 
     process.once('SIGTERM', () => {
-        void shutdown('SIGTERM').then(() => process.exit(0));
+        exitAfterShutdown('SIGTERM', 0);
     });
 
     process.on('unhandledRejection', (reason) => {
         logger.error({ err: reason }, 'Unhandled promise rejection');
-        void shutdown('unhandledRejection').then(() => process.exit(1));
+        exitAfterShutdown('unhandledRejection', 1);
     });
 
     process.on('uncaughtException', (error) => {
         logger.fatal({ err: error }, 'Uncaught exception');
-        void shutdown('uncaughtException').then(() => process.exit(1));
+        exitAfterShutdown('uncaughtException', 1);
     });
 };
 

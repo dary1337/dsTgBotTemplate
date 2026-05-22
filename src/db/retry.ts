@@ -27,6 +27,22 @@ export const withRetry = async <T>(
     options: RetryOptions,
 ): Promise<T> => {
     const { attempts, baseDelayMs, maxDelayMs, onRetry, sleep = defaultSleep } = options;
+
+    // Validate up front: an invalid `attempts` would skip the loop entirely and make
+    // the final `throw lastError` throw `undefined` instead of a real error.
+    if (!Number.isInteger(attempts) || attempts < 1) {
+        throw new RangeError('`attempts` must be an integer >= 1');
+    }
+    if (!Number.isFinite(baseDelayMs) || baseDelayMs < 0) {
+        throw new RangeError('`baseDelayMs` must be a finite number >= 0');
+    }
+    if (!Number.isFinite(maxDelayMs) || maxDelayMs < 0) {
+        throw new RangeError('`maxDelayMs` must be a finite number >= 0');
+    }
+    if (maxDelayMs < baseDelayMs) {
+        throw new RangeError('`maxDelayMs` must be >= `baseDelayMs`');
+    }
+
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
