@@ -1,9 +1,22 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import pino, { type Logger as PinoLogger } from 'pino';
+import pino, { type Bindings, type LogFn } from 'pino';
 import type { LoggerEnv } from '../config/env.js';
 
-export type AppLogger = PinoLogger;
+// The logging contract the rest of the app depends on — a port, not a re-export
+// of pino. Application code imports this type and never `pino` directly, so the
+// concrete logger can be swapped without touching call sites. The pino instance
+// built in `createLogger` structurally satisfies it (it has these and more).
+export type AppLogger = {
+    readonly level: string;
+    fatal: LogFn;
+    error: LogFn;
+    warn: LogFn;
+    info: LogFn;
+    debug: LogFn;
+    trace: LogFn;
+    child: (bindings: Bindings) => AppLogger;
+};
 
 export type LoggerManager = {
     logger: AppLogger;
