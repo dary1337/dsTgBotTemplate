@@ -2,7 +2,17 @@ import { MongoClient, type Collection, type Db } from 'mongodb';
 import type { AppEnv } from '../config/env.js';
 import type { AppLogger } from '../logger/logger.js';
 import { toMongoJsonSchema } from './json-schema.js';
+import { withRetry, type RetryOptions } from './retry.js';
 import { COLLECTION_DEFINITIONS, adminsCollection, type Admin } from './schema/index.js';
+
+// A flaky network or a database that is still booting (common with
+// `docker compose up`, where Mongo and the app start together) shouldn't kill
+// the process on the first failed connect — retry with backoff first.
+const CONNECT_RETRY: Omit<RetryOptions, 'onRetry'> = {
+    attempts: 5,
+    baseDelayMs: 500,
+    maxDelayMs: 10_000,
+};
 
 export type AppCollections = {
     admins: Collection<Admin>;
@@ -50,18 +60,34 @@ export const syncSchema = async (db: Db, logger: AppLogger) => {
 export const connectDatabase = async (
     env: AppEnv,
     logger: AppLogger,
+    retry: Omit<RetryOptions, 'onRetry'> = CONNECT_RETRY,
 ): Promise<DatabaseConnection> => {
     const client = new MongoClient(env.MONGO_URI, { appName: 'ds-tg-bot-template' });
     const db = client.db(env.MONGO_DB_NAME);
 
     try {
-        await client.connect();
-        await db.command({ ping: 1 });
+        await withRetry(
+            async () => {
+                await client.connect();
+                await db.command({ ping: 1 });
+            },
+            {
+                ...retry,
+                onRetry: ({ attempt, nextDelayMs, error }) =>
+                    logger.warn(
+                        { attempt, attempts: retry.attempts, nextDelayMs, err: error },
+                        'MongoDB connection failed, retrying',
+                    ),
+            },
+        );
     } catch (error) {
         logger.error(
             { uri: redactMongoUri(env.MONGO_URI), err: error },
             'Cannot reach MongoDB. Run `docker compose up` (it starts Mongo for you), or start a local mongod and check MONGO_URI in .env.',
         );
+        // The driver buffers an open socket even when the first connect rejects;
+        // close it so a failed startup doesn't leak a connection.
+        await client.close().catch(() => undefined);
         throw error;
     }
 
