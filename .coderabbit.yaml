@@ -6,11 +6,10 @@
 language: en-US
 early_access: false
 tone_instructions: >-
-  Review like a senior tech lead who owns this codebase. Be direct and
-  specific: cite the exact line and the concrete failure mode, not vague
-  style opinions. Block merges on correctness, security, and the architectural
-  invariants listed in the path instructions. Do not pad reviews with praise
-  or restate what the diff obviously does.
+  Review like a senior tech lead who owns this code. Be direct and specific:
+  cite the line and the failure mode. Block on correctness, security, and the
+  architectural invariants in the path instructions. No praise, no restating
+  the diff.
 
 reviews:
   # assertive => surface more issues, including ones a chill profile would skip.
