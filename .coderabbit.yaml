@@ -1,0 +1,188 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit review policy for ds-tg-bot-template.
+# Tone: a strict tech lead. Block on real problems, keep the architecture's
+# invariants enforced, and don't waste the author's time on noise.
+language: en-US
+early_access: false
+tone_instructions: >-
+  Review like a senior tech lead who owns this code. Be direct and specific:
+  cite the line and the failure mode. Block on correctness, security, and the
+  architectural invariants in the path instructions. No praise, no restating
+  the diff.
+
+reviews:
+  # assertive => surface more issues, including ones a chill profile would skip.
+  profile: assertive
+  # Keep the PR in "changes requested" until raised issues are addressed.
+  request_changes_workflow: true
+  high_level_summary: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  review_status: true
+  collapse_walkthrough: false
+  # Noise we don't want.
+  poem: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    # Don't burn reviews on work-in-progress.
+    drafts: false
+    base_branches:
+      - main
+
+  # Stop reviewing a PR once it's closed/merged.
+  abort_on_close: true
+
+  # Files CodeRabbit should not spend review effort on.
+  path_filters:
+    - '!**/package-lock.json'
+    - '!**/dist/**'
+    - '!**/node_modules/**'
+    - '!**/*.log'
+    - '!logs/**'
+
+  # Architecture- and stack-specific rules. These encode the conventions the
+  # codebase already follows so regressions get flagged automatically.
+  path_instructions:
+    - path: 'src/**/*.ts'
+      instructions: >-
+        Shipped source — hold it to production standard.
+        - Types: no `any` (explicit or implicit), no `as` assertions used to
+          silence the compiler, no non-null `!`. The project runs with
+          `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`: flag
+          unchecked array/record indexing and any `prop: undefined` passed to
+          an optional property (omit the property instead).
+        - Logging: import the `AppLogger` port from `src/logger/logger.js`.
+          Importing `pino` anywhere outside `src/logger/` defeats the
+          abstraction — flag it. No `console.*` in shipped code; use the logger.
+        - Data access: MongoDB must be reached only through
+          `src/db/repositories/*`. Flag any handler, feature, or middleware that
+          imports `mongodb`, touches a `Collection` directly, or builds queries
+          outside a repository.
+        - Validation: the zod schema in `src/db/schema/*` is the single source
+          of truth — types come from `z.infer`, and writes validate against it.
+          Flag hand-written duplicate interfaces for documents and writes that
+          skip validation.
+        - Errors & async: no floating promises, no swallowed errors (an empty
+          catch or a catch that neither logs with context nor rethrows). Async
+          work that can fail at startup or runtime must be handled, not left to
+          crash the process.
+        - Config: read environment only through the zod schemas in
+          `src/config/env.ts`. Flag scattered `process.env.*` reads elsewhere
+          (the `NODE_ENV` check in the logger is the allowed exception).
+        - Secrets: never log bot tokens or unredacted Mongo connection strings.
+    - path: 'src/db/**/*.ts'
+      instructions: >-
+        Data layer.
+        - A new collection must be registered in `schema/index.ts`
+          (COLLECTION_DEFINITIONS) and exposed via a typed accessor in
+          `buildCollections` (db.ts); flag schemas added in only one place.
+        - Repositories return domain types, not raw driver cursors; validate on
+          write; use indexes that match the query filters.
+        - Don't leak `mongodb` types (Collection, Db, ObjectId, filters) out of
+          this directory into bot/feature code.
+    - path: 'src/db/**/migrations/**/*.ts'
+      instructions: >-
+        Migrations must be idempotent and safe to re-run: guard backfills,
+        prefer `$setOnInsert`/upserts over blind writes, and provide a `down`
+        when the change is reversible. Index-only changes belong in the schema,
+        not a migration.
+    - path: 'src/_migrations/**/*.ts'
+      instructions: >-
+        Same rules as data migrations: idempotent `up`, optional `down`, no
+        assumptions about run order beyond the NNN_ filename prefix.
+    - path: 'src/tg-bot/**/*.ts'
+      instructions: >-
+        Telegram layer.
+        - The Telegraf `ctx` must not leak past this directory. Handlers extract
+          primitives (user id as string, etc.) and pass those to repositories —
+          never the `ctx` object itself. Flag any repository/db/domain call that
+          receives `ctx`.
+        - Every command/feature handler needs an error boundary: a try/catch
+          that logs with context (err + userId/update id) so one bad update
+          can't crash the bot.
+        - Keep business logic out of the handler body; the handler wires input
+          to a repository/service and replies.
+    - path: 'src/ds-bot/**/*.ts'
+      instructions: >-
+        Discord layer.
+        - Interaction handlers must be wrapped in try/catch that logs with
+          context (interaction id, user id) and, where possible, replies to the
+          user instead of failing silently.
+        - Don't reach into MongoDB directly; go through repositories.
+        - Prefer `MessageFlags.Ephemeral` over the deprecated `ephemeral: true`.
+    - path: 'src/index.ts'
+      instructions: >-
+        Bootstrap/composition root.
+        - Dependencies are constructed here and injected downward; flag new
+          module-level singletons or service locators.
+        - Preserve graceful shutdown: SIGINT/SIGTERM, unhandledRejection and
+          uncaughtException must still close bots and the DB and flush the
+          logger. Flag changes that drop a handler or leave a resource unclosed.
+        - One bot failing to start must not take down the other.
+    - path: 'tests/**/*.ts'
+      instructions: >-
+        Tests use node:test + node:assert/strict.
+        - Tests must be deterministic: no real sleeps, network, or wall-clock
+          dependence — inject the clock/sleep (see retry.test.ts).
+        - Assert behavior and edge cases, not just the happy path. Flag tests
+          that assert nothing or only re-state the implementation.
+    - path: 'examples/**/*.ts'
+      instructions: >-
+        Copy-in example code — review with a lighter touch than `src`, but
+        still flag real bugs, leaked secrets, missing error handling, and
+        anything that wouldn't survive being pasted into a real project.
+    - path: '.github/workflows/**/*.{yml,yaml}'
+      instructions: >-
+        CI/CD. Pin actions, keep the lint/format/typecheck/test/build gates
+        intact, and never echo or expose tokens/secrets in logs.
+    - path: '{docker-compose*.yml,Dockerfile}'
+      instructions: >-
+        Containers. Flag missing healthchecks, secrets baked into images,
+        running as root where avoidable, and unpinned base image tags.
+
+  # Linters/analyzers. Findings feed the review; keep them aligned with the
+  # repo's existing tooling and stack.
+  tools:
+    # Project's own ESLint flat config (typed rules, naming, kebab-case files).
+    eslint:
+      enabled: true
+    # Secret scanning — critical for a bot template full of tokens.
+    gitleaks:
+      enabled: true
+    # GitHub Actions workflow correctness.
+    actionlint:
+      enabled: true
+    # Dockerfile best practices.
+    hadolint:
+      enabled: true
+    # docker-compose / workflow YAML.
+    yamllint:
+      enabled: true
+    # README + docs.
+    markdownlint:
+      enabled: true
+    # Surface CI (lint/typecheck/test/build) results in the review.
+    github-checks:
+      enabled: true
+      timeout_ms: 120000
+    # Off: not this stack, or redundant with ESLint/Prettier.
+    biome:
+      enabled: false
+    oxc:
+      enabled: false
+    ruff:
+      enabled: false
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto

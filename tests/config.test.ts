@@ -9,10 +9,9 @@ test('formats telegram commands from the shared command list', () => {
         '/start - Show the welcome message',
         '/ping - Check bot availability',
     ]);
-    assert.equal(
-        formatTelegramCommands()[0],
-        `/${TELEGRAM_COMMANDS[0].command} - ${TELEGRAM_COMMANDS[0].description}`,
-    );
+    const [first] = TELEGRAM_COMMANDS;
+    assert.ok(first, 'expected at least one telegram command');
+    assert.equal(formatTelegramCommands()[0], `/${first.command} - ${first.description}`);
 });
 
 test('builds admin filters with telegram as the default platform', () => {

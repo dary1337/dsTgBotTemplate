@@ -75,17 +75,27 @@ test('loadEnv rejects startup without bot tokens', async () => {
     );
 });
 
-test('loadLoggerEnv falls back to safe defaults on invalid values', async () => {
+test('loadLoggerEnv falls back to safe defaults and reports issues on invalid values', async () => {
     await withEnv(
         {
             LOG_LEVEL: 'not-a-real-level',
             LOG_DIR: '',
         },
         () => {
-            assert.deepEqual(loadLoggerEnv(), {
-                LOG_LEVEL: 'info',
-                LOG_DIR: 'logs',
-            });
+            const { env, issues } = loadLoggerEnv();
+
+            assert.deepEqual(env, { LOG_LEVEL: 'info', LOG_DIR: 'logs' });
+            assert.ok(issues.length > 0, 'expected validation issues to be reported');
+            assert.ok(issues.some((issue) => issue.startsWith('LOG_LEVEL')));
         },
     );
+});
+
+test('loadLoggerEnv reports no issues for a clean environment', async () => {
+    await withEnv({ LOG_LEVEL: 'debug', LOG_DIR: 'logs' }, () => {
+        const { env, issues } = loadLoggerEnv();
+
+        assert.deepEqual(env, { LOG_LEVEL: 'debug', LOG_DIR: 'logs' });
+        assert.deepEqual(issues, []);
+    });
 });
