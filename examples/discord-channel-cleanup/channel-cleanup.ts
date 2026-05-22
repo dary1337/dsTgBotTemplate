@@ -64,10 +64,11 @@ export const cleanupChannelMessages = async (
     let before: string | undefined;
 
     do {
-        const messages = await channel.messages.fetch({
-            limit: batchSize,
-            before,
-        });
+        // Omit `before` entirely on the first pass — with exactOptionalPropertyTypes
+        // an explicit `before: undefined` is not a valid FetchMessagesOptions.
+        const messages = await channel.messages.fetch(
+            before ? { limit: batchSize, before } : { limit: batchSize },
+        );
 
         if (messages.size === 0) {
             break;
