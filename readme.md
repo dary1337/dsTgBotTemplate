@@ -1,3 +1,5 @@
+![ds-tg-bot-template](docs/cover.png)
+
 # ds-tg-bot-template
 
 Discord **and** Telegram bots in one TypeScript codebase, backed by MongoDB. One process,
